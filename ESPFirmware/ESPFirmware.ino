@@ -158,6 +158,8 @@ State currentState = BLUETOOTH;
 
 State nextState(State currentState) {
   switch(currentState) {
+    case WAKE:
+    return BLUETOOTH;
     case BLUETOOTH:
     return PURPLE;
     case PURPLE:
@@ -204,6 +206,7 @@ void setup() {
 
   pinMode(LED, OUTPUT);
   pinMode(BUTTON, INPUT_PULLUP);
+  pinMode(SHAKE, INPUT);
 
   Serial.println(name);
 
@@ -251,33 +254,37 @@ void setup() {
   Serial.println("Server started");
 
   lights.begin();
-  lights.setBrightness(200);
+  lights.setBrightness(125);
 }
 
 void loop() {
   // button debounce
   unsigned long time = millis();
-  int buttonState = digitalRead(BUTTON);
+  int reading = digitalRead(BUTTON);
 
-  if (buttonState != lastButtonState) {
-    lastDebounceTime = time;
-  }
+  if ((time - lastDebounceTime) > debounceDelay) {
+    if (reading != buttonState) {
+      buttonState = reading;
 
-  if (time - lastDebounceTime > debounceDelay) {
-    if (buttonState != buttonState) {
-      buttonState = buttonState;
-
-      if (buttonState == LOW) {
+      // state changes on button release
+      if (buttonState == HIGH) {
         currentState = nextState(currentState);
       }
     }
   }
-  lastButtonState = buttonState;
+
+  if (reading != lastButtonState) {
+    lastDebounceTime = time;
+  }
+  lastButtonState = reading;
 
 
   // led states
-
+  int sh;
   switch(currentState) {
+    case WAKE:
+    // button on rise, this will be the state when button is pressed to wake, but hasn't released yet
+    break;
     case BLUETOOTH:
       for (int i = 0; i < numLed; ++i) {
         lights.setPixelColor(i, lights.Color(green, red, blue));
@@ -291,10 +298,20 @@ void loop() {
       lights.show();
     break;
     case GRADIENT:
+      
+      sh = analogRead(SHAKE);
+      if (sh > 100) {
+        Serial.println("Shake");
+      }
+      // Serial.println(sh);
+
       for (int i = 0; i < numLed; ++i) {
         lights.setPixelColor(i, lights.Color(green, red, blue));
       }
       lights.show();
+      
+      break;
+      
     case OFF:
       esp_sleep_enable_ext0_wakeup(GPIO_NUM_33, 0); // 0 for low when pressed, 1 for high
       esp_deep_sleep_start();
@@ -305,4 +322,5 @@ void loop() {
   if (connected) {
     // Serial.println("Connected");
   }
+  
 }
