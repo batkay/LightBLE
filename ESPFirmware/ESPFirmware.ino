@@ -38,6 +38,9 @@ Name
 
 #define CANARY 23 // yuqi's favorite number
 
+#define SHAKETHRESH 100
+
+
 // UUID for the service to be findable
 #define SERVICE_UUID "b41a63b1-23e5-490a-9366-5867c165fc2a" // randomly generated https://www.uuidgenerator.net/
 
@@ -54,6 +57,8 @@ Name
 unsigned char red = 0;
 unsigned char green = 0;
 unsigned char blue = 255;
+
+int randVal = 0;
 
 // Checks when a device connects
 bool connected = false;
@@ -148,23 +153,28 @@ class NameCallback: public BLECharacteristicCallbacks {
 };
 
 enum State {
+  WAKE,
   BLUETOOTH,
   PURPLE,
   GRADIENT,
   OFF
 };
 
-State currentState = BLUETOOTH;
+State currentState = WAKE;
 
 State nextState(State currentState) {
   switch(currentState) {
     case WAKE:
+    Serial.println("blue");
     return BLUETOOTH;
     case BLUETOOTH:
+    Serial.println("Purple");
     return PURPLE;
     case PURPLE:
+    Serial.println("Grad");
     return GRADIENT;
     case GRADIENT:
+    Serial.println("off");
     return OFF;
     case OFF:
     return BLUETOOTH;
@@ -253,6 +263,12 @@ void setup() {
   pServer-> getAdvertising() -> start();
   Serial.println("Server started");
 
+
+  red = 0;
+  green = 0;
+  blue = 255;
+
+  // start the neopixel ring
   lights.begin();
   lights.setBrightness(125);
 }
@@ -281,13 +297,14 @@ void loop() {
 
   // led states
   int sh;
+
   switch(currentState) {
     case WAKE:
     // button on rise, this will be the state when button is pressed to wake, but hasn't released yet
     break;
     case BLUETOOTH:
       for (int i = 0; i < numLed; ++i) {
-        lights.setPixelColor(i, lights.Color(green, red, blue));
+        lights.setPixelColor(i, lights.Color(red, green, blue));
       }
       lights.show();
     break;
@@ -298,21 +315,30 @@ void loop() {
       lights.show();
     break;
     case GRADIENT:
-      
       sh = analogRead(SHAKE);
-      if (sh > 100) {
-        Serial.println("Shake");
+
+      if (sh > SHAKETHRESH) {
+        // Serial.println("Shake");
+        
+        green = random(0, 255);
+        red = random(0, 255);
+        blue = random(0, 255);
+
       }
       // Serial.println(sh);
 
       for (int i = 0; i < numLed; ++i) {
-        lights.setPixelColor(i, lights.Color(green, red, blue));
+        lights.setPixelColor(i, lights.Color(red, green, blue));
       }
       lights.show();
       
       break;
       
     case OFF:
+      for (int i = 0; i < numLed; ++i) {
+        lights.setPixelColor(i, lights.Color(0, 0, 0));
+      }
+      lights.show();
       esp_sleep_enable_ext0_wakeup(GPIO_NUM_33, 0); // 0 for low when pressed, 1 for high
       esp_deep_sleep_start();
       // will probably stop after this
