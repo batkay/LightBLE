@@ -32,7 +32,7 @@ Name
 // ms for button debounce
 #define debounceDelay 50
 
-#define numLed 17
+#define NUMLED 12
 
 #define EEPROMSIZE 20
 
@@ -40,6 +40,8 @@ Name
 
 #define SHAKETHRESH 100
 
+#define CYCLETIME 100
+#define SNAKELENGTH 5
 
 // UUID for the service to be findable
 #define SERVICE_UUID "b41a63b1-23e5-490a-9366-5867c165fc2a" // randomly generated https://www.uuidgenerator.net/
@@ -58,7 +60,6 @@ unsigned char red = 0;
 unsigned char green = 0;
 unsigned char blue = 255;
 
-int randVal = 0;
 
 // Checks when a device connects
 bool connected = false;
@@ -68,9 +69,13 @@ int buttonState = LOW;
 int lastButtonState = LOW;
 unsigned long lastDebounceTime = millis();
 
+// delta time for snake
+unsigned long lastChange = millis();
+unsigned short snakeColor = 0;
+int snakeCount = 0;
 
 // light properties
-Adafruit_NeoPixel lights = Adafruit_NeoPixel(numLed, LED, NEO_GRB);
+Adafruit_NeoPixel lights = Adafruit_NeoPixel(NUMLED, LED, NEO_GRB);
 
 // global to be edited in callback
 char name[EEPROMSIZE + 1]; // 20 long names, extra for \0
@@ -89,7 +94,7 @@ class MyServerCallbacks: public BLEServerCallbacks {
 };
 
 
-// create callbacks for the BLE characteristic
+// create callbacks for the BLE characteristic. Given a pointer to the color var to be changed
 class MyCharCallbacks: public BLECharacteristicCallbacks {
   unsigned char* color = NULL;
   public:
@@ -99,63 +104,102 @@ class MyCharCallbacks: public BLECharacteristicCallbacks {
   MyCharCallbacks(unsigned char* color) {
     this -> color = color;
   }
+  // void onWrite(BLECharacteristic *pCharacteristic) {
+  //   std::string val = pCharacteristic -> getValue();
+
+  //   if (val.length() > 0) {
+  //     Serial.print("Recieved: ");
+  //     for (int i = 0; i < val.length(); ++i) {
+  //       Serial.println(val[i]);
+
+  //     }
+
+  //     // ability to do more here
+  //     if (val[0] == '1') {
+  //       digitalWrite(2, HIGH);
+  //     }
+  //     else if (val[0] == '0') {
+  //       digitalWrite(2, LOW);
+  //     }
+
+  //     if (color != NULL) {
+  //       *color = val[0];
+  //     }
+
+  //     Serial.println();
+  //   }
+  // }
+
+
   void onWrite(BLECharacteristic *pCharacteristic) {
-    std::string val = pCharacteristic -> getValue();
+    uint8_t* val = pCharacteristic -> getData();
 
-    if (val.length() > 0) {
-      Serial.print("Recieved: ");
-      for (int i = 0; i < val.length(); ++i) {
-        Serial.println(val[i]);
+    Serial.print("Recieved: ");
+    Serial.write(*val);
 
-      }
-
-      // ability to do more here
-      if (val[0] == '1') {
-        digitalWrite(2, HIGH);
-      }
-      else if (val[0] == '0') {
-        digitalWrite(2, LOW);
-      }
-
-      if (color != NULL) {
-        *color = val[0];
-      }
-
-      Serial.println();
+    if (color != NULL) {
+      *color = *val;
     }
+
+    Serial.println();
+    
   }
 };
 
+// class NameCallback: public BLECharacteristicCallbacks {
+//   void onWrite(BLECharacteristic *pCharacteristic) {
+//     std::string val = pCharacteristic -> getValue();
+
+//     if (val.length() > 0) {
+//       Serial.print("Recieved: ");
+//       EEPROM.write(0, CANARY);
+//       EEPROM.commit();
+//       Serial.println(EEPROM.read(0));
+//       EEPROM.write(22, '\0');
+//       for (int i = 0; i < val.length(); ++i) {
+//         Serial.println(val[i]);
+
+//         EEPROM.write(count+ 1, val[i]);
+//         EEPROM.commit();
+//         // Serial.println(EEPROM.read(count + 1));
+//         name[count ++] = val[i];
+//         if (val[i] == '\0' || count == 20) {
+//           count = 0;
+//           break;
+//         }
+//       }
+//     }
+//   }
+// };
+
 class NameCallback: public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
-    std::string val = pCharacteristic -> getValue();
+    uint8_t* val = pCharacteristic -> getData();
 
-    if (val.length() > 0) {
-      Serial.print("Recieved: ");
-      EEPROM.write(0, CANARY);
-      EEPROM.commit();
-      Serial.println(EEPROM.read(0));
-      EEPROM.write(22, '\0');
-      for (int i = 0; i < val.length(); ++i) {
-        Serial.println(val[i]);
+    Serial.print("Recieved: ");
+    EEPROM.write(0, CANARY);
+    Serial.println(EEPROM.read(0));
+    EEPROM.write(22, '\0');
 
-        EEPROM.write(count+ 1, val[i]);
-        EEPROM.commit();
-        // Serial.println(EEPROM.read(count + 1));
-        name[count ++] = val[i];
-        if (val[i] == '\0' || count == 20) {
-          count = 0;
-          break;
-        }
-      }
+    Serial.println(*val);
+
+    EEPROM.write(count+ 1, *val);
+    EEPROM.commit();
+    // Serial.println(EEPROM.read(count + 1));
+    name[count ++] = *val;
+    if (*val == '\0' || count == 20) {
+      count = 0;
+      // EEPPROM.commit();
     }
+    
+    
   }
 };
 
 enum State {
   WAKE,
   BLUETOOTH,
-  PURPLE,
+  SNAKE,
   GRADIENT,
   OFF
 };
@@ -168,10 +212,13 @@ State nextState(State currentState) {
     Serial.println("blue");
     return BLUETOOTH;
     case BLUETOOTH:
-    Serial.println("Purple");
-    return PURPLE;
-    case PURPLE:
+    Serial.println("Snake");
+    return SNAKE;
+    case SNAKE:
     Serial.println("Grad");
+    red = 82;
+    green = 22;
+    blue = 222;
     return GRADIENT;
     case GRADIENT:
     Serial.println("off");
@@ -270,7 +317,7 @@ void setup() {
 
   // start the neopixel ring
   lights.begin();
-  lights.setBrightness(125);
+  lights.setBrightness(100);
 }
 
 void loop() {
@@ -303,17 +350,34 @@ void loop() {
     // button on rise, this will be the state when button is pressed to wake, but hasn't released yet
     break;
     case BLUETOOTH:
-      for (int i = 0; i < numLed; ++i) {
+      for (int i = 0; i < NUMLED; ++i) {
         lights.setPixelColor(i, lights.Color(red, green, blue));
       }
       lights.show();
     break;
-    case PURPLE:
-      for (int i = 0; i < numLed; ++i) {
-        lights.setPixelColor(i, lights.Color(238,130,238));
+    case SNAKE:
+      // more delta timings
+      if (time - lastChange > CYCLETIME) {
+        lastChange = time;
+        // changes colors in snake range to color
+        // rest of the pixels are set to off
+        
+        for (int i = 0; i < SNAKELENGTH; ++i) {
+          lights.setPixelColor((snakeCount + i) % NUMLED, lights.ColorHSV(snakeColor, 255, 255 ));
+        }
+
+        for (int j = (snakeCount + SNAKELENGTH) % NUMLED; j != snakeCount; j = (j + 1) % NUMLED) {
+          lights.setPixelColor(j, 0);
+        }
+
+        lights.show();
+
+        snakeCount = (snakeCount + 1) % NUMLED;
+        snakeColor += 50;
+        
       }
-      lights.show();
     break;
+
     case GRADIENT:
       sh = analogRead(SHAKE);
 
@@ -327,7 +391,7 @@ void loop() {
       }
       // Serial.println(sh);
 
-      for (int i = 0; i < numLed; ++i) {
+      for (int i = 0; i < NUMLED; ++i) {
         lights.setPixelColor(i, lights.Color(red, green, blue));
       }
       lights.show();
@@ -335,7 +399,7 @@ void loop() {
       break;
       
     case OFF:
-      for (int i = 0; i < numLed; ++i) {
+      for (int i = 0; i < NUMLED; ++i) {
         lights.setPixelColor(i, lights.Color(0, 0, 0));
       }
       lights.show();
