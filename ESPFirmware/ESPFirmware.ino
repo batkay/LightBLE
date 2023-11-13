@@ -60,7 +60,6 @@ unsigned char red = 0;
 unsigned char green = 0;
 unsigned char blue = 255;
 
-
 // Checks when a device connects
 bool connected = false;
 
@@ -89,6 +88,7 @@ class MyServerCallbacks: public BLEServerCallbacks {
   }
   void onDisconnect(BLEServer* pServer) {
     connected = false;
+    BLEDevice::startAdvertising();
     Serial.println("Disconnected");
   }
 };
@@ -104,31 +104,6 @@ class MyCharCallbacks: public BLECharacteristicCallbacks {
   MyCharCallbacks(unsigned char* color) {
     this -> color = color;
   }
-  // void onWrite(BLECharacteristic *pCharacteristic) {
-  //   std::string val = pCharacteristic -> getValue();
-
-  //   if (val.length() > 0) {
-  //     Serial.print("Recieved: ");
-  //     for (int i = 0; i < val.length(); ++i) {
-  //       Serial.println(val[i]);
-
-  //     }
-
-  //     // ability to do more here
-  //     if (val[0] == '1') {
-  //       digitalWrite(2, HIGH);
-  //     }
-  //     else if (val[0] == '0') {
-  //       digitalWrite(2, LOW);
-  //     }
-
-  //     if (color != NULL) {
-  //       *color = val[0];
-  //     }
-
-  //     Serial.println();
-  //   }
-  // }
 
 
   void onWrite(BLECharacteristic *pCharacteristic) {
@@ -145,32 +120,6 @@ class MyCharCallbacks: public BLECharacteristicCallbacks {
     
   }
 };
-
-// class NameCallback: public BLECharacteristicCallbacks {
-//   void onWrite(BLECharacteristic *pCharacteristic) {
-//     std::string val = pCharacteristic -> getValue();
-
-//     if (val.length() > 0) {
-//       Serial.print("Recieved: ");
-//       EEPROM.write(0, CANARY);
-//       EEPROM.commit();
-//       Serial.println(EEPROM.read(0));
-//       EEPROM.write(22, '\0');
-//       for (int i = 0; i < val.length(); ++i) {
-//         Serial.println(val[i]);
-
-//         EEPROM.write(count+ 1, val[i]);
-//         EEPROM.commit();
-//         // Serial.println(EEPROM.read(count + 1));
-//         name[count ++] = val[i];
-//         if (val[i] == '\0' || count == 20) {
-//           count = 0;
-//           break;
-//         }
-//       }
-//     }
-//   }
-// };
 
 class NameCallback: public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
@@ -189,7 +138,6 @@ class NameCallback: public BLECharacteristicCallbacks {
     name[count ++] = *val;
     if (*val == '\0' || count == 20) {
       count = 0;
-      // EEPPROM.commit();
     }
     
     
@@ -270,7 +218,7 @@ void setup() {
   // Create BLE device
   BLEDevice::init(nameStr);
   // Create BLE server and set its callbacks
-  BLEServer *pServer = BLEDevice::createServer();
+  BLEServer* pServer = BLEDevice::createServer();
   pServer -> setCallbacks(new MyServerCallbacks());
   // create a service within server  
   BLEService *pService = pServer->createService(SERVICE_UUID);
@@ -303,11 +251,22 @@ void setup() {
   );
   nameChar -> setCallbacks(new NameCallback());
 
+  BLEAdvertisementData data = BLEAdvertisementData();
+  data.setShortName("Lightstick");
+  data.setManufacturerData("Batkay");
+  
+  BLEAdvertising* ad = pServer -> getAdvertising();
+  ad -> setAdvertisementData(data);
+  ad -> addServiceUUID(SERVICE_UUID);
+  ad->setScanResponse(true);
+  ad->setMinPreferred(0x06);  // functions that help with iPhone connections issue
+  ad->setMinPreferred(0x12);
   // starts the service
   pService->start();
+  BLEDevice::startAdvertising();
 
   // start advertising the server
-  pServer-> getAdvertising() -> start();
+  // ad -> start();
   Serial.println("Server started");
 
 

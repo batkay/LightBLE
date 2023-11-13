@@ -1,5 +1,7 @@
+import 'package:ble_controller/Controllers/ble_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import 'package:provider/provider.dart';
 import 'Views/home.dart';
 import 'dart:io' show Platform;
 
@@ -20,7 +22,11 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(),
+      home: ChangeNotifierProvider(
+          create: (context) => BLEDevice(),
+          child: Consumer<BLEDevice>(
+            builder: (context, value, child) => MyHomePage(),
+          )),
     );
   }
 }
@@ -34,6 +40,11 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   var selectedIndex = 0;
+  @override
+  void initState() {
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     Widget page;
@@ -51,7 +62,7 @@ class _MyHomePageState extends State<MyHomePage> {
     FlutterBluePlus.adapterState.listen((BluetoothAdapterState state) {
       if (state != BluetoothAdapterState.on) {
         // usually start scanning, connecting, etc
-        selectedIndex = 1;
+        selectedIndex = 2;
       }
     });
 
@@ -62,6 +73,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     switch (selectedIndex) {
+      // can be null
       case 0:
         page = FindDevicePage();
         break;
