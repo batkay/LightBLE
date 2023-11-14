@@ -125,9 +125,9 @@ class NameCallback: public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
     uint8_t* val = pCharacteristic -> getData();
 
-    Serial.print("Recieved: ");
+    Serial.print("Name Recieved: ");
     EEPROM.write(0, CANARY);
-    Serial.println(EEPROM.read(0));
+    // Serial.println(EEPROM.read(0));
     EEPROM.write(22, '\0');
 
     Serial.println(*val);

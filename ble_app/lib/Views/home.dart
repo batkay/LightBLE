@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:ble_app/Controllers/ble_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -7,6 +9,7 @@ import 'package:provider/provider.dart';
 var blue = Guid("52f09b90-df0f-4783-bc36-dca7e3a792f7");
 var red = Guid("f0c34848-394f-44fd-8a5a-0e6f39d711fe");
 var green = Guid("85a61293-1b8e-4127-b8bf-94e8f8c73d20");
+var namerid = Guid("e25e0e65-52c1-4d10-9dc4-c0b52521e769");
 var service = Guid("b41a63b1-23e5-490a-9366-5867c165fc2a");
 
 class FindDevicePage extends StatefulWidget {
@@ -99,14 +102,32 @@ class FindDevicePageState extends State<FindDevicePage> {
                       device.disconnectDevice();
                     },
                     child: const Text("Back")),
-                SingleChildScrollView(
-                  child: MaterialPicker(
-                      pickerColor: light,
-                      // colorPickerWidth: 50,
-                      // enableAlpha: false,
-                      onColorChanged: (Color c) {
-                        light = c;
-                      }),
+                TextField(
+                  onSubmitted: (str) async {
+                    var id = value.dev!;
+                    BluetoothCharacteristic name = BluetoothCharacteristic(
+                        remoteId: id,
+                        serviceUuid: service,
+                        characteristicUuid: namerid);
+                    for (var char in str.characters) {
+                      await name.write(utf8.encode(char));
+                    }
+
+                    await name.write([00]);
+                  },
+                ),
+                Container(
+                  height: 400,
+                  child: SingleChildScrollView(
+                    child: MaterialPicker(
+                        pickerColor: light,
+
+                        // colorPickerWidth: 50,
+                        // enableAlpha: false,
+                        onColorChanged: (Color c) {
+                          light = c;
+                        }),
+                  ),
                 ),
                 ElevatedButton(
                     onPressed: () async {
