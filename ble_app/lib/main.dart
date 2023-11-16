@@ -19,6 +19,7 @@ class MyApp extends StatelessWidget {
     print("Starting");
     return MaterialApp(
       title: 'Lightstick Companion',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
@@ -88,11 +89,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
     switch (notOn) {
       case 2:
-        return Placeholder(
-          color: Colors.red,
-        );
+        return Text("Bluetooth not on");
       case 3:
-        return Placeholder(color: Colors.green);
+        return Text("Bluetooth not supported");
     }
     switch (selectedIndex) {
       // can be null
