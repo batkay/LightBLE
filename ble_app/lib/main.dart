@@ -73,6 +73,10 @@ class _MyHomePageState extends State<MyHomePage> {
           notOn = 2;
         });
         return;
+      } else {
+        setState(() {
+          notOn = 0;
+        });
       }
     });
 
@@ -89,9 +93,34 @@ class _MyHomePageState extends State<MyHomePage> {
 
     switch (notOn) {
       case 2:
-        return Text("Bluetooth not on");
+        print("not on");
+        return Scaffold(
+            appBar: AppBar(
+              title: const Text("Error"),
+              backgroundColor: Colors.pink,
+            ),
+            body: SingleChildScrollView(
+                child: Column(children: [
+              Center(
+                child: const Text("Bluetooth not on"),
+              )
+
+              // TextButton(onPressed: tryBLE, child: const Text("Try Again"))
+            ])));
       case 3:
-        return Text("Bluetooth not supported");
+        return Scaffold(
+            appBar: AppBar(
+              title: const Text("Error"),
+              backgroundColor: Colors.pink,
+            ),
+            body: SingleChildScrollView(
+                child: Column(children: [
+              Center(
+                child: const Text("Bluetooth not supported"),
+              )
+
+              // TextButton(onPressed: tryBLE, child: const Text("Try Again"))
+            ])));
     }
     switch (selectedIndex) {
       // can be null
