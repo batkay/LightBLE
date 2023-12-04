@@ -56,7 +56,7 @@ class FindDevicePageState extends State<FindDevicePage> {
               StreamBuilder<List<ScanResult>>(
                   stream: FlutterBluePlus.scanResults,
                   builder: (context, snapshot) {
-                    if (snapshot.hasData) {
+                    if (snapshot.hasData && snapshot.data!.isNotEmpty) {
                       final devices = snapshot
                           .data; // can be null if app closed then reopened, scan not updated
                       return ListView.builder(
