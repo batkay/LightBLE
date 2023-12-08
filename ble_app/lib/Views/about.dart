@@ -12,7 +12,7 @@ class AboutPage extends StatelessWidget {
         ),
         body: SingleChildScrollView(
           child: Text(
-              "App by Thomas Lang\n Special Thanks to Amy Xue for helping with this project.\n I literally made this app in a week while trying to learn Flutter, it WILL crash"),
+              "App by Thomas Lang\n Special Thanks to Amy Xue for helping with this project.\n"),
         ));
   }
 }
