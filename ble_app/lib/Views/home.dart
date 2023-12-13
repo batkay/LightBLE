@@ -116,17 +116,19 @@ class FindDevicePageState extends State<FindDevicePage> {
                     await name.write([00]);
                   },
                 ),
-                Container(
-                  height: 400,
-                  child: SingleChildScrollView(
-                    child: MaterialPicker(
-                        pickerColor: light,
+                Expanded(
+                  child: Container(
+                    height: 400,
+                    child: SingleChildScrollView(
+                      child: MaterialPicker(
+                          pickerColor: light,
 
-                        // colorPickerWidth: 50,
-                        // enableAlpha: false,
-                        onColorChanged: (Color c) {
-                          light = c;
-                        }),
+                          // colorPickerWidth: 50,
+                          // enableAlpha: false,
+                          onColorChanged: (Color c) {
+                            light = c;
+                          }),
+                    ),
                   ),
                 ),
                 ElevatedButton(
@@ -152,7 +154,6 @@ class FindDevicePageState extends State<FindDevicePage> {
                       await b.write([light.blue]);
                     },
                     child: const Text("Send")),
-                const Text("Test"),
               ],
             ));
       }
